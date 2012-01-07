@@ -1,0 +1,18 @@
+erc-crypt.el is a minor mode for ERC that enables the use of PSK encryption.
+Encryption can be enabled/disabled on a per buffer basis.
+
+* Features
+  - Use external OpenSSL binary for encrypt/decrypt
+  - Visual in-buffer indicator for errors and encrypted messages sent/received
+
+* Todo
+  + Auto split ciphertext in order to get around IRC message limits
+  + Key-exchange?
+  + Message padding to constant size
+
+* License
+The code comes with a BSD-style license so you can basically do with it
+whatever you want.
+
+* Author
+xristos (AT) sdf (DOT) lonestar (DOT) org
