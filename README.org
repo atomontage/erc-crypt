@@ -1,4 +1,5 @@
 erc-crypt.el is a minor mode for ERC that enables the use of PSK encryption.
+
 Encryption can be enabled/disabled on a per buffer basis.
 
 * Features
@@ -9,6 +10,14 @@ Encryption can be enabled/disabled on a per buffer basis.
   + Auto split ciphertext in order to get around IRC message limits
   + Key-exchange?
   + Message padding to constant size
+
+* Usage 
+  ;; Move erc-crypt.el to a directory in your load-path
+  (require 'erc-crypt)
+
+  M-x erc-crypt-enable  ; Enable encryption for the current ERC buffer
+  M-x erc-crypt-disable ; Disable encryption for the current ERC buffer
+  M-x erc-crypt-set-key ; Set/change key for current ERC buffer
 
 * License
 The code comes with a BSD-style license so you can basically do with it
