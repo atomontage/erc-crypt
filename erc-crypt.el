@@ -38,6 +38,20 @@
 ;; An external `openssl' binary is used for the actual encryption,
 ;; communication with Emacs happening via `call-process-region'.
 ;;
+;;; Usage:
+;;
+;; Move erc-crypt.el to a directory in your load-path
+;;
+;; (require 'erc-crypt)
+;;
+;; M-x erc-crypt-enable  ; Enable encryption for the current ERC buffer
+;; M-x erc-crypt-disable ; Disable encryption for the current ERC buffer
+;; M-x erc-crypt-set-key ; Set/change key for the current ERC buffer
+;;
+;;; Note:
+;;
+;; I am not a cryptographer && crypto bugs may lurk -> Use at your own risk!
+;;
 ;;; Code:
 
 (require 'cl)
