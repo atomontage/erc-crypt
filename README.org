@@ -4,12 +4,15 @@ Encryption can be enabled/disabled on a per buffer basis.
 
 * Features
   - Use external OpenSSL binary for encrypt/decrypt
-  - Visual in-buffer indicator for errors and encrypted messages sent/received
+  - Visual in-buffer indicator for errors and encrypted messages
+    sent/received
+  - Auto splits ciphertext in order to get around IRC message limits.
+    Original formatting is preserved, no information is lost.
+  - Messages are padded to constant size
+
 
 * Todo
-  + Auto split ciphertext in order to get around IRC message limits
   + Key-exchange?
-  + Message padding to constant size
 
 * Usage 
   ;; Move erc-crypt.el to a directory in your load-path
