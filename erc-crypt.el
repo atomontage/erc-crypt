@@ -172,7 +172,7 @@ buffer and executes BODY.  Finally, restore ERC text properties."
 
 (defun erc-crypt-time-millis ()
   "Return current time (time since Unix epoch) in milliseconds."
-  (destructuring-bind (sec-h sec-l micro) (current-time)
+  (destructuring-bind (sec-h sec-l micro &optional _) (current-time)
     (+ (* (+ (* sec-h (expt 2 16))
              sec-l)
           1000)
