@@ -74,6 +74,9 @@
 (require 'erc)
 (require 'sha1)
 
+;; erc-fill doesn't play well with us
+(make-variable-buffer-local 'erc-fill-function)
+
 (define-minor-mode erc-crypt-mode
   "Toggle symmetric encryption."
   nil " CRYPT" nil
@@ -85,9 +88,12 @@
         (add-hook 'erc-send-completed-hook 'erc-crypt-post-send nil t)
         (add-hook 'erc-insert-pre-hook 'erc-crypt-pre-insert nil t)
         (add-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert nil t)
+        
         ;; Reset buffer locals
         (setq erc-crypt-left-over nil
+              erc-fill-function nil
               erc-crypt-insert-queue nil))
+    
     ;; disabled
     (progn
       (remove-hook 'erc-send-pre-hook 'erc-crypt-maybe-send t)
