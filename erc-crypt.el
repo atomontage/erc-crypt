@@ -75,6 +75,8 @@
 (require 'sha1)
 
 ;; erc-fill doesn't play well with us
+(defvar erc-crypt-fill-function erc-fill-function)
+
 (make-variable-buffer-local 'erc-fill-function)
 
 (define-minor-mode erc-crypt-mode
@@ -87,12 +89,11 @@
         (add-hook 'erc-send-modify-hook 'erc-crypt-maybe-send-fixup nil t)
         (add-hook 'erc-send-completed-hook 'erc-crypt-post-send nil t)
         (add-hook 'erc-insert-pre-hook 'erc-crypt-pre-insert nil t)
-        (add-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert nil t)
-        
+        (add-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert nil t)        
         ;; Reset buffer locals
         (setq erc-crypt-left-over nil
-              erc-fill-function nil
-              erc-crypt-insert-queue nil))
+              erc-crypt-insert-queue nil
+              erc-fill-function nil))
     
     ;; disabled
     (progn
@@ -100,7 +101,8 @@
       (remove-hook 'erc-send-modify-hook 'erc-crypt-maybe-send-fixup t)
       (remove-hook 'erc-send-completed-hook 'erc-crypt-post-send t)
       (remove-hook 'erc-insert-pre-hook 'erc-crypt-pre-insert t)
-      (remove-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert t))))
+      (remove-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert t)
+      (setq erc-fill-function erc-crypt-fill-function))))
 
 (defvar erc-crypt-openssl-path "openssl"
   "Path to openssl binary.")
