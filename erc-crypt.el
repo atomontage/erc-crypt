@@ -72,6 +72,7 @@
 
 (require 'cl)
 (require 'erc)
+(require 'erc-fill)
 (require 'sha1)
 
 ;; erc-fill doesn't play well with us
