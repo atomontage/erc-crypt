@@ -59,9 +59,13 @@
 ;;
 ;;
 ;;; TODO:
+
+;; + Move to GnuPG for symmetric encryption (also customizable key
+;;                                           derivation from passphrase)
 ;;
-;; + Key exchange?
+;; + Use OpenSSL for DH key generation
 ;;
+;; + Fully automated authenticated DH key exchange 
 ;;
 ;;
 ;;; Notes:
@@ -76,7 +80,9 @@
 (require 'sha1)
 
 ;; erc-fill doesn't play well with us
-(defvar erc-crypt-fill-function erc-fill-function)
+(defvar erc-crypt-fill-function nil)
+
+(make-variable-buffer-local 'erc-crypt-fill-function)
 
 (make-variable-buffer-local 'erc-fill-function)
 
@@ -90,10 +96,12 @@
         (add-hook 'erc-send-modify-hook 'erc-crypt-maybe-send-fixup nil t)
         (add-hook 'erc-send-completed-hook 'erc-crypt-post-send nil t)
         (add-hook 'erc-insert-pre-hook 'erc-crypt-pre-insert nil t)
-        (add-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert nil t)        
+        (add-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert nil t)
+        
         ;; Reset buffer locals
         (setq erc-crypt-left-over nil
               erc-crypt-insert-queue nil
+              erc-crypt-fill-function erc-fill-function
               erc-fill-function nil))
     
     ;; disabled
@@ -103,7 +111,8 @@
       (remove-hook 'erc-send-completed-hook 'erc-crypt-post-send t)
       (remove-hook 'erc-insert-pre-hook 'erc-crypt-pre-insert t)
       (remove-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert t)
-      (setq erc-fill-function erc-crypt-fill-function))))
+      (setq erc-fill-function erc-crypt-fill-function
+            erc-crypt-fill-function nil))))
 
 (defvar erc-crypt-openssl-path "openssl"
   "Path to openssl binary.")
