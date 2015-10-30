@@ -65,12 +65,15 @@
 ;;
 ;; + Use OpenSSL for DH key generation
 ;;
-;; + Fully automated authenticated DH key exchange 
+;; + Fully automated authenticated DH key exchange
 ;;
 ;;
 ;;; Notes:
 ;;
-;; I am not a cryptographer && crypto bugs may lurk -> Use at your own risk!
+;; erc-crypt should be seen as a proof-of-concept and serve as HOWTO-code
+;; in terms of developing minor modes for ERC.
+;;
+;; There is no strong cryptography here, DO NOT use this for anything serious!
 ;;
 ;;; Code:
 
@@ -97,13 +100,13 @@
         (add-hook 'erc-send-completed-hook 'erc-crypt-post-send nil t)
         (add-hook 'erc-insert-pre-hook 'erc-crypt-pre-insert nil t)
         (add-hook 'erc-insert-modify-hook 'erc-crypt-maybe-insert nil t)
-        
+
         ;; Reset buffer locals
         (setq erc-crypt-left-over nil
               erc-crypt-insert-queue nil
               erc-crypt-fill-function erc-fill-function
               erc-fill-function nil))
-    
+
     ;; disabled
     (progn
       (remove-hook 'erc-send-pre-hook 'erc-crypt-maybe-send t)
@@ -117,7 +120,7 @@
 (defvar erc-crypt-openssl-path "openssl"
   "Path to openssl binary.")
 
-(defvar erc-crypt-cipher "bf-cbc"
+(defvar erc-crypt-cipher "aes-256-cbc"
   "Cipher to use.  Default is Blowfish CBC.")
 
 (defvar erc-crypt-indicator "☿"
@@ -232,6 +235,7 @@ Return NIL on error."
                       (buffer-string)))
           (unless (= status 0)
             (message "Non-zero return code from openssl (encrypt)")
+            (message "Output was: %s" result)
             (return-from erc-crypt-encrypt nil))
           (base64-encode-string (concat iv result) t)))
     ('error
@@ -416,9 +420,7 @@ Return list of substrings."
           (t
            (erc-crypt-pad (erc-crypt-split-hard string))))))
 
-;;
-;; Interactive
-;; 
+;;; Interactive
 
 (defun erc-crypt-enable ()
   "Enable erc-crypt-mode for the current buffer."

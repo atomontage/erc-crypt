@@ -16,6 +16,12 @@ Encryption can be enabled/disabled on a per buffer basis.
 + Use OpenSSL for DH key generation
 + Fully automated authenticated DH key exchange 
 
+* Crypto
+
+erc-crypt.el should be seen as a proof-of-concept and serve as HOWTO-code
+in terms of developing similar minor modes for ERC. It does NOT offer
+strong cryptography, DO NOT use this for anything serious!
+
 * Usage 
 #+BEGIN_SRC emacs-lisp
 ;; Move erc-crypt.el to a directory in your load-path
