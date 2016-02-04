@@ -121,7 +121,7 @@
   "Path to openssl binary.")
 
 (defvar erc-crypt-cipher "aes-256-cbc"
-  "Cipher to use.  Default is Blowfish CBC.")
+  "Cipher to use.  Default is AES CBC.")
 
 (defvar erc-crypt-indicator "☿"
   "String that is used to visually indicate encrypted messages.")
