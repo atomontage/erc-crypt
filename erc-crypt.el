@@ -210,7 +210,7 @@ Return IV as a 128bit hex string."
                     ""))
              0 32))
 
-(defun* erc-crypt-encrypt (string)
+(cl-defun erc-crypt-encrypt (string)
   "Encrypt STRING with `erc-crypt-key'.
 An IV generated dynamically by `erc-crypt-generate-iv' is used for encryption.
 Return the BASE64 encoded concatenation of IV and CIPHERTEXT which should be
@@ -242,7 +242,7 @@ Return NIL on error."
      (message "Process error during encryption: %s" ex)
      nil)))
 
-(defun* erc-crypt-decrypt (string)
+(cl-defun erc-crypt-decrypt (string)
   "Decrypt STRING with `erc-crypt-key'.
 STRING should be BASE64 encoded and contain in order, the IV as a 16 byte hex string
 and the CIPHERTEXT, which should be BASE64 encoded as well.
