@@ -77,7 +77,7 @@
 ;;
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (require 'erc)
 (require 'erc-fill)
 (require 'sha1)
@@ -332,13 +332,13 @@ This will avoid displaying the message and will not trigger
 (defun erc-crypt-maybe-insert ()
   "Display decrypted messages and do fragment reconstruction.
 This happens inside `erc-insert-modify-hook'."
-  (labels ((insert-msg (msg)
-                       (insert (decode-coding-string msg 'utf-8 t))
-                       (goto-char (point-min))
-                       (insert (concat (propertize erc-crypt-indicator
-                                                   'face `(:foreground ,erc-crypt-success-color))
-                                       " "))
-                       (setq erc-crypt-insert-queue nil)))
+  (cl-labels ((insert-msg (msg)
+                          (insert (decode-coding-string msg 'utf-8 t))
+                          (goto-char (point-min))
+                          (insert (concat (propertize erc-crypt-indicator
+                                                      'face `(:foreground ,erc-crypt-success-color))
+                                          " "))
+                          (setq erc-crypt-insert-queue nil)))
     (erc-crypt-with-message (msg)
       (let* ((len (length erc-crypt-insert-queue))
              (cons (first erc-crypt-insert-queue))
@@ -384,23 +384,23 @@ XXX are bytes used for padding.
 P is a single byte that is equal to the number of X (padding bytes)
 S is a single byte that is equal to 1 when the message is a fragment, 0
 if not or if final fragment."
-  (labels ((do-pad (string split-tag)
-                   (let* ((len (length string))
-                          (diff (- erc-crypt-max-len len))
-                          (pad (loop repeat diff
-                                     collect (string (random 255)) into ret
-                                     finally (return (reduce 'concat ret)))))
-                     (concat string pad (string diff) (string split-tag)))))
+  (cl-labels ((do-pad (string split-tag)
+                      (let* ((len (length string))
+                             (diff (- erc-crypt-max-len len))
+                             (pad (loop repeat diff
+                                        collect (string (random 255)) into ret
+                                        finally (return (reduce 'concat ret)))))
+                        (concat string pad (string diff) (string split-tag)))))
     (cond ((listp (rest list))
-             ;; Message is split in parts
-             (loop for msg in list
-                   for count from 0
-                   with len = (length list)
-                   if (= count (1- len))
-                       collect (do-pad msg 0)
-                       else
-                       collect (do-pad msg 1)))
-            (t (list (do-pad list 0))))))
+           ;; Message is split in parts
+           (loop for msg in list
+                 for count from 0
+                 with len = (length list)
+                 if (= count (1- len))
+                 collect (do-pad msg 0)
+                 else
+                 collect (do-pad msg 1)))
+          (t (list (do-pad list 0))))))
 
 
 (defun erc-crypt-split-hard (string)
