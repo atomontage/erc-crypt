@@ -77,10 +77,11 @@
 ;;
 ;;; Code:
 
-(require 'cl-lib)
+
 (require 'erc)
 (require 'erc-fill)
 (require 'sha1)
+(require 'cl-lib)
 
 ;; erc-fill doesn't play well with us
 (defvar erc-crypt-fill-function nil)
@@ -170,7 +171,7 @@ by `erc-crypt-maybe-insert'.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro* erc-crypt-with-message ((message) &rest body)
+(cl-defmacro erc-crypt-with-message ((message) &rest body)
   "Deal with narrowed regions as implemented by
 `erc-send-modify-hook' and `erc-insert-modify-hook'.
 
@@ -226,7 +227,7 @@ Return NIL on error."
             (key erc-crypt-key))
         (multiple-value-bind (status result)
             (with-temp-buffer
-              (insert-string (base64-encode-string string))
+              (insert (base64-encode-string string))
               (values (call-process-region
                        (point-min) (point-max)
                        erc-crypt-openssl-path t t nil
@@ -259,7 +260,7 @@ Return NIL on all errors."
              (ciphertext (substring str 32)))
         (multiple-value-bind (status result)
             (with-temp-buffer
-              (insert-string ciphertext)
+              (insert ciphertext)
               (values (call-process-region
                        (point-min) (point-max)
                        erc-crypt-openssl-path t t nil
@@ -296,6 +297,8 @@ On errors, do not send STRING to the server."
              (message "Message will not be sent")
              (setq erc-send-this nil))
             (t
+             ;; str is dynamically bound
+             (defvar str)
              (setq erc-crypt-message str
                    str (concat erc-crypt-prefix (first encrypted) erc-crypt-postfix)
                    erc-crypt-left-over (rest encrypted)))))))
