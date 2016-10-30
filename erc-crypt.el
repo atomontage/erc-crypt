@@ -1,11 +1,13 @@
 ;;; erc-crypt.el --- Symmetric Encryption for ERC
-
+;;
 ;; Copyright (C) 2011 xristos@sdf.lonestar.org
 ;; All rights reserved
-
+;;
 ;; Version: 1.0 - 2012-07-05
 ;; Author: xristos@sdf.lonestar.org
-;; Keywords: application
+;; URL: https://github.com/atomontage/erc-crypt
+;; Package-Requires: ((cl-lib "0.5"))
+;; Keywords: comm
 ;;
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions
@@ -59,7 +61,7 @@
 ;;
 ;;
 ;;; TODO:
-
+;;
 ;; + Move to GnuPG for symmetric encryption (also customizable key
 ;;                                           derivation from passphrase)
 ;;
@@ -448,5 +450,4 @@ The value used is the SHA1 hash of KEY."
   (setq erc-crypt-key (sha1 key)))
 
 (provide 'erc-crypt)
-
 ;;; erc-crypt.el ends here
