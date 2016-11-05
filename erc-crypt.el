@@ -181,7 +181,7 @@ Search for and extract an encrypted message (if present),
 then bind MESSAGE to it, delete the encrypted string from the
 buffer and executes BODY.  Finally, restore ERC text properties."
   (declare (indent defun))
-  (let ((start (gensym)))
+  (let ((start (cl-gensym)))
     `(when erc-crypt-mode
        (goto-char (point-min))
        (let ((,start nil))
@@ -196,7 +196,7 @@ buffer and executes BODY.  Finally, restore ERC text properties."
 
 (defun erc-crypt-time-millis ()
   "Return current time (time since Unix epoch) in milliseconds."
-  (destructuring-bind (sec-h sec-l micro &optional _) (current-time)
+  (cl-destructuring-bind (sec-h sec-l micro &optional _) (current-time)
     (+ (* (+ (* sec-h (expt 2 16))
              sec-l)
           1000)
@@ -227,19 +227,19 @@ Return NIL on error."
   (condition-case ex
       (let ((iv (erc-crypt-generate-iv))
             (key erc-crypt-key))
-        (multiple-value-bind (status result)
+        (cl-multiple-value-bind (status result)
             (with-temp-buffer
               (insert (base64-encode-string string))
-              (values (call-process-region
-                       (point-min) (point-max)
-                       erc-crypt-openssl-path t t nil
-                       "enc" "-a" (concat "-" erc-crypt-cipher)
-                       "-iv" iv "-K" key "-nosalt")
-                      (buffer-string)))
+              (list (call-process-region
+                     (point-min) (point-max)
+                     erc-crypt-openssl-path t t nil
+                     "enc" "-a" (concat "-" erc-crypt-cipher)
+                     "-iv" iv "-K" key "-nosalt")
+                    (buffer-string)))
           (unless (= status 0)
             (message "Non-zero return code from openssl (encrypt)")
             (message "Output was: %s" result)
-            (return-from erc-crypt-encrypt nil))
+            (cl-return-from erc-crypt-encrypt nil))
           (base64-encode-string (concat iv result) t)))
     ('error
      (message "Process error during encryption: %s" ex)
@@ -254,28 +254,28 @@ If `erc-crypt-key' is NIL, return NIL. See `erc-crypt-set-key'.
 Return NIL on all errors."
   (unless erc-crypt-key
     (message "No key set, could not decrypt")
-    (return-from erc-crypt-decrypt nil))
+    (cl-return-from erc-crypt-decrypt nil))
   (condition-case ex
       (let* ((str (base64-decode-string string))
              (iv (substring str 0 32))
              (key erc-crypt-key)
              (ciphertext (substring str 32)))
-        (multiple-value-bind (status result)
+        (cl-multiple-value-bind (status result)
             (with-temp-buffer
               (insert ciphertext)
-              (values (call-process-region
-                       (point-min) (point-max)
-                       erc-crypt-openssl-path t t nil
-                       "enc" "-d" "-a" (concat "-" erc-crypt-cipher)
-                       "-iv" iv "-K" key "-nosalt")
-                      (buffer-string)))
+              (list (call-process-region
+                     (point-min) (point-max)
+                     erc-crypt-openssl-path t t nil
+                     "enc" "-d" "-a" (concat "-" erc-crypt-cipher)
+                     "-iv" iv "-K" key "-nosalt")
+                    (buffer-string)))
           (unless (= status 0)
             (message "Non-zero return code from openssl (decrypt)")
-            (return-from erc-crypt-decrypt nil))
+            (cl-return-from erc-crypt-decrypt nil))
           (base64-decode-string result)))
-      ('error
-       (message "Process error during decryption: %s" ex)
-       nil)))
+    ('error
+     (message "Process error during decryption: %s" ex)
+     nil)))
 
 
 
@@ -295,15 +295,15 @@ On errors, do not send STRING to the server."
     (let* ((encoded (encode-coding-string string 'utf-8 t))
            (split (erc-crypt-split-message encoded))
            (encrypted (mapcar 'erc-crypt-encrypt split)))
-      (cond ((some 'null encrypted)
+      (cond ((cl-some 'null encrypted)
              (message "Message will not be sent")
              (setq erc-send-this nil))
             (t
              ;; str is dynamically bound
              (defvar str)
              (setq erc-crypt-message str
-                   str (concat erc-crypt-prefix (first encrypted) erc-crypt-postfix)
-                   erc-crypt-left-over (rest encrypted)))))))
+                   str (concat erc-crypt-prefix (cl-first encrypted) erc-crypt-postfix)
+                   erc-crypt-left-over (cl-rest encrypted)))))))
 
 
 (defun erc-crypt-maybe-send-fixup ()
@@ -346,14 +346,14 @@ This happens inside `erc-insert-modify-hook'."
                           (setq erc-crypt-insert-queue nil)))
     (erc-crypt-with-message (msg)
       (let* ((len (length erc-crypt-insert-queue))
-             (cons (first erc-crypt-insert-queue))
+             (cons (cl-first erc-crypt-insert-queue))
              (msg (car cons))
              (tag (cdr cons)))
         (cond ((eql msg :error)
                ;; Insert queued fragments
                (insert (concat "(decrypt error) "
                                (decode-coding-string
-                                (mapconcat 'identity (mapcar 'car (nreverse (rest erc-crypt-insert-queue))) "")
+                                (mapconcat 'identity (mapcar 'car (nreverse (cl-rest erc-crypt-insert-queue))) "")
                                 'utf-8 t)))
                (goto-char (point-min))
                (insert (concat (propertize erc-crypt-indicator
@@ -373,7 +373,7 @@ This happens inside `erc-insert-modify-hook'."
 (defun erc-crypt-post-send (string)
   "Send message fragments placed in `erc-crypt-left-over' to remote end."
   (unwind-protect
-      (loop for m in erc-crypt-left-over do
+      (cl-loop for m in erc-crypt-left-over do
             (erc-message "PRIVMSG"
                          (concat (erc-default-target) " "
                                  (concat erc-crypt-prefix m erc-crypt-postfix))))
@@ -392,13 +392,13 @@ if not or if final fragment."
   (cl-labels ((do-pad (string split-tag)
                       (let* ((len (length string))
                              (diff (- erc-crypt-max-len len))
-                             (pad (loop repeat diff
+                             (pad (cl-loop repeat diff
                                         collect (string (random 255)) into ret
-                                        finally (return (reduce 'concat ret)))))
+                                        finally return (cl-reduce 'concat ret))))
                         (concat string pad (string diff) (string split-tag)))))
-    (cond ((listp (rest list))
+    (cond ((listp (cl-rest list))
            ;; Message is split in parts
-           (loop for msg in list
+           (cl-loop for msg in list
                  for count from 0
                  with len = (length list)
                  if (= count (1- len))
@@ -412,10 +412,10 @@ if not or if final fragment."
   "Split STRING into substrings that are at most `erc-crypt-max-len' bytes long.
 Splitting does not take into account word boundaries or whitespace.
 Return list of substrings."
-  (loop with len = (length string)
-        for start = 0 then (+ start erc-crypt-max-len)
-        while (< start len)
-        collect (substring string start (min len (+ start erc-crypt-max-len)))))
+  (cl-loop with len = (length string)
+           for start = 0 then (+ start erc-crypt-max-len)
+           while (< start len)
+           collect (substring string start (min len (+ start erc-crypt-max-len)))))
 
 (defun erc-crypt-split-message (string)
   (let* ((len (length string)))
@@ -430,13 +430,13 @@ Return list of substrings."
 (defun erc-crypt-enable ()
   "Enable erc-crypt-mode for the current buffer."
   (interactive)
-  (assert (eq major-mode 'erc-mode))
+  (cl-assert (eq major-mode 'erc-mode))
   (erc-crypt-mode t))
 
 (defun erc-crypt-disable ()
   "Disable erc-crypt-mode for the current buffer."
   (interactive)
-  (assert (eq major-mode 'erc-mode))
+  (cl-assert (eq major-mode 'erc-mode))
   (erc-crypt-mode -1))
 
 (defun erc-crypt-set-key (key)
