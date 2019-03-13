@@ -1,14 +1,14 @@
 ;;; erc-crypt.el --- Symmetric Encryption for ERC
-;;
-;; Copyright (C) 2011-2016 xristos@sdf.lonestar.org
+
+;; Copyright (C) 2011-2019 xristos@sdf.lonestar.org
 ;; All rights reserved
-;;
-;; Version: 1.6 - 2016-12-28
-;; Author: xristos@sdf.lonestar.org
+
+;; Version: 1.7 - 2019-03-10
+;; Author: xristos <xristos@sdf.lonestar.org>
 ;; URL: https://github.com/atomontage/erc-crypt
 ;; Package-Requires: ((cl-lib "0.5"))
 ;; Keywords: comm
-;;
+
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions
 ;; are met:
@@ -76,9 +76,8 @@
 ;; in terms of developing minor modes for ERC.
 ;;
 ;; There is no strong cryptography here, DO NOT use this for anything serious!
-;;
-;;; Code:
 
+;;; Code:
 
 (require 'erc)
 (require 'erc-fill)
@@ -89,7 +88,6 @@
 (defvar erc-crypt-fill-function nil)
 
 (make-variable-buffer-local 'erc-crypt-fill-function)
-
 (make-variable-buffer-local 'erc-fill-function)
 
 (define-minor-mode erc-crypt-mode
@@ -141,13 +139,13 @@
 (defvar erc-crypt-postfix "IAO"
   "String that is used as a postfix in all encrypted messages sent/received.")
 
-(defvar erc-crypt-max-len 150
+(defvar erc-crypt-max-length 150
   "Maximum message length. If input message exceeds this, it will be broken up
 using `erc-crypt-split-message'. This is used in order to work around IRC
 protocol message limits.")
 
 (defvar erc-crypt-message nil
-  "Holds last message sent (before it gets encrypted).
+  "Last message sent (before it gets encrypted).
 This becomes buffer-local whenever it is set.")
 
 (make-variable-buffer-local 'erc-crypt-message)
@@ -171,7 +169,11 @@ by `erc-crypt-maybe-insert'.")
 
 (make-variable-buffer-local 'erc-crypt-insert-queue)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;
+;;; Internals
+;;;
+
 
 (cl-defmacro erc-crypt-with-message ((message) &rest body)
   "Deal with narrowed regions as implemented by
@@ -283,7 +285,7 @@ Return NIL on all errors."
   "Encrypt STRING and send to receiver. Run as a hook in `erc-send-pre-hook'.
 STRING should contain input from user. In order to get around IRC protocol
 message size limits, we split STRING into fragments and pad them to a
-constant size, `erc-crypt-max-len', by calling `erc-crypt-split-message'.
+constant size, `erc-crypt-max-length', by calling `erc-crypt-split-message'.
 The resulting padded fragments are encrypted and sent separately and
 the original message reconstructed at the receiver end, with the original
 formatting preserved intact.
@@ -291,7 +293,7 @@ formatting preserved intact.
 On errors, do not send STRING to the server."
   (when (and erc-crypt-mode
              ;; Skip ERC commands
-             (not (string-equal "/" (substring string 0 1))))
+             (not (string= "/" (substring string 0 1))))
     (let* ((encoded (encode-coding-string string 'utf-8 t))
            (split (erc-crypt-split-message encoded))
            (encrypted (mapcar 'erc-crypt-encrypt split)))
@@ -380,7 +382,7 @@ This happens inside `erc-insert-modify-hook'."
     (setq erc-crypt-left-over nil)))
 
 (defun erc-crypt-pad (list)
-  "Pad message or fragments in LIST to `erc-crypt-max-len' bytes.
+  "Pad message or fragments in LIST to `erc-crypt-max-length' bytes.
 Return a list of padded message or list of fragments.
 The resulting messages are of the form MMMMMMMMXXXPS.
 
@@ -391,7 +393,7 @@ S is a single byte that is equal to 1 when the message is a fragment, 0
 if not or if final fragment."
   (cl-labels ((do-pad (string split-tag)
                       (let* ((len (length string))
-                             (diff (- erc-crypt-max-len len))
+                             (diff (- erc-crypt-max-length len))
                              (pad (cl-loop repeat diff
                                         collect (string (random 255)) into ret
                                         finally return (cl-reduce 'concat ret))))
@@ -409,23 +411,27 @@ if not or if final fragment."
 
 
 (defun erc-crypt-split-hard (string)
-  "Split STRING into substrings that are at most `erc-crypt-max-len' bytes long.
+  "Split STRING into substrings that are at most `erc-crypt-max-length' bytes long.
 Splitting does not take into account word boundaries or whitespace.
 Return list of substrings."
   (cl-loop with len = (length string)
-           for start = 0 then (+ start erc-crypt-max-len)
+           for start = 0 then (+ start erc-crypt-max-length)
            while (< start len)
-           collect (substring string start (min len (+ start erc-crypt-max-len)))))
+           collect (substring string start (min len (+ start erc-crypt-max-length)))))
 
 (defun erc-crypt-split-message (string)
   (let* ((len (length string)))
-    (cond ((<= len erc-crypt-max-len)
+    (cond ((<= len erc-crypt-max-length)
            ;; Pad to maximum size if needed
            (erc-crypt-pad (list string)))
           (t
            (erc-crypt-pad (erc-crypt-split-hard string))))))
 
+
+;;;
 ;;; Interactive
+;;;
+
 
 (defun erc-crypt-enable ()
   "Enable erc-crypt-mode for the current buffer."
@@ -440,7 +446,7 @@ Return list of substrings."
   (erc-crypt-mode -1))
 
 (defun erc-crypt-set-key (key)
-  "Sets `erc-crypt-key' for the current buffer.
+  "Set `erc-crypt-key' for the current buffer.
 The value used is the SHA1 hash of KEY."
   (interactive
    (list (read-passwd "Key: ")))
