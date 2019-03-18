@@ -340,7 +340,7 @@ This will avoid displaying the message and will not trigger
   "Display decrypted messages and do fragment reconstruction.
 This happens inside `erc-insert-modify-hook'."
   (cl-labels ((insert-msg (msg)
-                          (insert (decode-coding-string msg 'utf-8 t))
+                          (insert (decode-coding-string msg 'utf-8 :nocopy))
                           (goto-char (point-min))
                           (insert (concat (propertize erc-crypt-indicator
                                                       'face `(:foreground ,erc-crypt-success-color))
@@ -356,7 +356,7 @@ This happens inside `erc-insert-modify-hook'."
                (insert (concat "(decrypt error) "
                                (decode-coding-string
                                 (mapconcat 'identity (mapcar 'car (nreverse (cl-rest erc-crypt-insert-queue))) "")
-                                'utf-8 t)))
+                                'utf-8 :nocopy)))
                (goto-char (point-min))
                (insert (concat (propertize erc-crypt-indicator
                                            'face `(:foreground ,erc-crypt-failure-color))
