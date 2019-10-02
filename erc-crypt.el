@@ -3,7 +3,7 @@
 ;; Copyright (C) 2011-2019 xristos@sdf.lonestar.org
 ;; All rights reserved
 
-;; Version: 1.7 - 2019-03-10
+;; Version: 1.8 - 2019-10-03
 ;; Author: xristos <xristos@sdf.lonestar.org>
 ;; URL: https://github.com/atomontage/erc-crypt
 ;; Package-Requires: ((cl-lib "0.5"))
@@ -38,7 +38,7 @@
 ;; Minor mode for ERC that enables the use of symmetric encryption.
 ;;
 ;; An external `openssl' binary is used for the actual encryption,
-;; communication with Emacs happening via `call-process-region'.
+;; communicating with Emacs via `call-process-region'.
 ;;
 ;;; Usage:
 ;;
@@ -62,8 +62,8 @@
 ;;
 ;;; TODO:
 ;;
-;; + Move to GnuPG for symmetric encryption (also customizable key
-;;                                           derivation from passphrase)
+;; + Move to GnuPG for symmetric encryption
+;;   (and customizable key derivation from passphrase)
 ;;
 ;; + Use OpenSSL for DH key generation
 ;;
@@ -73,9 +73,9 @@
 ;;; Notes:
 ;;
 ;; erc-crypt should be seen as a proof-of-concept and serve as HOWTO-code
-;; in terms of developing minor modes for ERC.
+;; in terms of developing similar minor modes for ERC.
 ;;
-;; There is no strong cryptography here, DO NOT use this for anything serious!
+;; DO NOT use this if you need STRONG cryptography!
 
 ;;; Code:
 
@@ -84,7 +84,7 @@
 (require 'sha1)
 (require 'cl-lib)
 
-;; erc-fill doesn't play well with us
+;; erc-fill doesn't play nice with erc-crypt.el
 (defvar erc-crypt-fill-function nil)
 
 (make-variable-buffer-local 'erc-crypt-fill-function)
@@ -94,7 +94,7 @@
   "Toggle symmetric encryption."
   nil " CRYPT" nil
   (if erc-crypt-mode
-      ;; enabled
+      ;; Enabled
       (progn
         (add-hook 'erc-send-pre-hook 'erc-crypt-maybe-send nil t)
         (add-hook 'erc-send-modify-hook 'erc-crypt-maybe-send-fixup nil t)
@@ -108,7 +108,7 @@
               erc-crypt-fill-function erc-fill-function
               erc-fill-function nil))
 
-    ;; disabled
+    ;; Disabled
     (progn
       (remove-hook 'erc-send-pre-hook 'erc-crypt-maybe-send t)
       (remove-hook 'erc-send-modify-hook 'erc-crypt-maybe-send-fixup t)
@@ -125,47 +125,46 @@
   "Cipher to use.  Default is AES CBC.")
 
 (defvar erc-crypt-indicator "☿"
-  "String that is used to visually indicate encrypted messages.")
+  "String to indicate (in-buffer) encrypted messages.")
 
 (defvar erc-crypt-success-color "PaleGreen"
-  "Color that is used to indicate success.")
+  "Color to indicate success.")
 
 (defvar erc-crypt-failure-color "#ffff55"
-  "Color that is used to indicate failure.")
+  "Color to indicate failure.")
 
 (defvar erc-crypt-prefix "LVX"
-  "String that is used as a prefix in all encrypted messages sent/received.")
+  "String prefixed to all encrypted messages sent/received.")
 
 (defvar erc-crypt-postfix "IAO"
-  "String that is used as a postfix in all encrypted messages sent/received.")
+  "String postfixed to all encrypted messages sent/received.")
 
 (defvar erc-crypt-max-length 150
-  "Maximum message length. If input message exceeds this, it will be broken up
-using `erc-crypt-split-message'. This is used in order to work around IRC
-protocol message limits.")
+  "Maximum message length.  If input message exceeds it, message will be
+broken up using `erc-crypt-split-message'.  This is used in order to work
+around IRC protocol message limits.")
 
 (defvar erc-crypt-message nil
-  "Last message sent (before it gets encrypted).
-This becomes buffer-local whenever it is set.")
+  "Last message sent (before encryption).")
 
 (make-variable-buffer-local 'erc-crypt-message)
 
 (defvar erc-crypt-key nil
   "Key to use for encryption.
-This is actually the SHA1 hash of the string that the user provides as a key.
-This becomes buffer-local whenever it is set.")
+If auto-set, it will be the SHA1 hash of the string interactively provided in
+`erc-crypt-encrypt'.")
 
 (make-variable-buffer-local 'erc-crypt-key)
 
 (defvar erc-crypt-left-over nil
-  "List that contains message fragments, they are sent by `erc-crypt-post-send'
-inside `erc-send-completed-hook'.")
+  "List that contains message fragments.
+Processed by `erc-crypt-post-send' inside `erc-send-completed-hook'.")
 
 (make-variable-buffer-local 'erc-crypt-left-over)
 
 (defvar erc-crypt-insert-queue nil
-  "List that contains message fragments, before insertion. They are managed
-by `erc-crypt-maybe-insert'.")
+  "List that contains message fragments, before insertion.
+Managed by `erc-crypt-maybe-insert'.")
 
 (make-variable-buffer-local 'erc-crypt-insert-queue)
 
@@ -221,7 +220,7 @@ An IV generated dynamically by `erc-crypt-generate-iv' is used for encryption.
 Return the BASE64 encoded concatenation of IV and CIPHERTEXT which should be
 BASE64 encoded as well.
 
-If `erc-crypt-key' is NIL, the user will be asked interactively to provide a key.
+If `erc-crypt-key' is NIL, ask for a key interactively.
 Return NIL on error."
   (unless erc-crypt-key
     (setq erc-crypt-key (sha1 (read-passwd "Key: ")))
@@ -252,7 +251,7 @@ Return NIL on error."
 STRING should be BASE64 encoded and contain in order, the IV as a 16 byte hex string
 and the CIPHERTEXT, which should be BASE64 encoded as well.
 
-If `erc-crypt-key' is NIL, return NIL. See `erc-crypt-set-key'.
+If `erc-crypt-key' is NIL, return NIL.  See `erc-crypt-set-key'.
 Return NIL on all errors."
   (unless erc-crypt-key
     (message "No key set, could not decrypt")
@@ -282,11 +281,11 @@ Return NIL on all errors."
 
 
 (defun erc-crypt-maybe-send (string)
-  "Encrypt STRING and send to receiver. Run as a hook in `erc-send-pre-hook'.
-STRING should contain input from user. In order to get around IRC protocol
-message size limits, we split STRING into fragments and pad them to a
+  "Encrypt STRING and send to receiver.  Runs as a hook in `erc-send-pre-hook'.
+STRING should contain user input.  In order to get around IRC protocol
+message size limits, STRING is split into fragments and padded to a
 constant size, `erc-crypt-max-length', by calling `erc-crypt-split-message'.
-The resulting padded fragments are encrypted and sent separately and
+The resulting padded fragments are encrypted and sent separately,
 the original message reconstructed at the receiver end, with the original
 formatting preserved intact.
 
@@ -321,8 +320,7 @@ This happens inside `erc-send-modify-hook'."
 (defun erc-crypt-pre-insert (string)
   "Decrypt STRING and insert it into `erc-crypt-insert-queue'.
 If the decrypted message is a fragment, `erc-insert-this' is set to NIL.
-This will avoid displaying the message and will not trigger
-`erc-insert-modify-hook'."
+This will avoid displaying the message and will not trigger `erc-insert-modify-hook'."
   (when (string-match (concat erc-crypt-prefix "\\(.+\\)" erc-crypt-postfix) string)
     (let* ((msg (match-string 1 string))
            (decrypted (erc-crypt-decrypt msg)))
