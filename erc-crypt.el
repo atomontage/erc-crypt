@@ -367,7 +367,7 @@ This happens inside `erc-insert-modify-hook'."
                ;; Do nothing
                t)
               ((= tag 0)
-               ;; We got final fragment
+               ;; Final fragment
                (insert-msg (mapconcat 'identity (mapcar 'car (nreverse erc-crypt-insert-queue)) ""))))))))
 
 (defun erc-crypt-post-send (string)
