@@ -233,7 +233,7 @@ Return NIL on error."
               (insert (base64-encode-string string))
               (list (call-process-region
                      (point-min) (point-max)
-                     erc-crypt-openssl-path t t nil
+                     erc-crypt-openssl-path t '(t nil) nil
                      "enc" "-a" (concat "-" erc-crypt-cipher)
                      "-iv" iv "-K" key "-nosalt")
                     (buffer-string)))
@@ -266,7 +266,7 @@ Return NIL on all errors."
               (insert ciphertext)
               (list (call-process-region
                      (point-min) (point-max)
-                     erc-crypt-openssl-path t t nil
+                     erc-crypt-openssl-path t '(t nil) nil
                      "enc" "-d" "-a" (concat "-" erc-crypt-cipher)
                      "-iv" iv "-K" key "-nosalt")
                     (buffer-string)))
