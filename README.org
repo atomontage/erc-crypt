@@ -2,12 +2,12 @@
 [[http://melpa.org/#/erc-crypt][https://melpa.org/packages/erc-crypt-badge.svg]]
 [[http://stable.melpa.org/#/erc-crypt][https://stable.melpa.org/packages/erc-crypt-badge.svg]]
 
-erc-crypt.el is a minor mode for ERC that enables the use of PSK encryption.
+erc-crypt.el is a minor mode for ERC that provides PSK encryption.
 
 Encryption can be enabled/disabled on a per buffer basis.
 
 * Features
-- Use external OpenSSL binary for encrypt/decrypt
+- Uses external OpenSSL binary for encrypt/decrypt
 - Visual in-buffer indicator for errors and encrypted messages
   sent/received
 - Auto splits ciphertext in order to get around IRC message limits.
@@ -15,16 +15,16 @@ Encryption can be enabled/disabled on a per buffer basis.
 - Messages are padded to constant size
 
 * Todo
-+ Move to GnuPG for symmetric encryption (also customizable key
++ Move to GnuPG for symmetric encryption (and customizable key
   derivation from passphrase)
 + Use OpenSSL for DH key generation
-+ Fully automated authenticated DH key exchange 
++ Fully automated authenticated DH key exchange
 
 * Crypto
 
 erc-crypt.el should be seen as a proof-of-concept and serve as HOWTO-code
 in terms of developing similar minor modes for ERC. It does NOT offer
-strong cryptography, DO NOT use this for anything serious!
+strong cryptography, DO NOT use this if that is what you need!
 
 * Usage 
 #+BEGIN_SRC emacs-lisp
