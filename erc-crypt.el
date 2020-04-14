@@ -24,7 +24,7 @@
 ;; THIS SOFTWARE IS PROVIDED BY THE AUTHOR 'AS IS' AND ANY EXPRESSED
 ;; OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 ;; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-;; ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+;; ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
 ;; DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
 ;; DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
 ;; GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
@@ -75,7 +75,7 @@
 ;; erc-crypt should be seen as a proof-of-concept and serve as HOWTO-code
 ;; in terms of developing similar minor modes for ERC.
 ;;
-;; DO NOT use this if you need STRONG cryptography!
+;; Do NOT use this if you need STRONG cryptography!
 
 ;;; Code:
 
@@ -94,7 +94,7 @@
   "Path to openssl binary.")
 
 (defvar erc-crypt-cipher "aes-256-cbc"
-  "Cipher to use.  Default is AES CBC.")
+  "Cipher to use. Default is AES CBC.")
 
 (defvar erc-crypt-indicator "☿"
   "String indicator for (in-buffer) encrypted messages.")
@@ -112,9 +112,9 @@
   "String postfixed to all encrypted messages sent/received.")
 
 (defvar erc-crypt-max-length 150
-  "Maximum message length.  If input message exceeds it, message will be
-broken up using `erc-crypt-split-message'.  This is used in order to work
-around IRC protocol message limits.")
+  "Maximum message length. If input message exceeds it, message will be
+broken up using `erc-crypt-split-message'. This is used to work around
+IRC protocol message limits.")
 
 (defvar erc-crypt-message nil
   "Last message sent (before encryption).")
@@ -174,13 +174,19 @@ Managed by `erc-crypt-maybe-insert'.")
 ;;;
 
 
+(defun erc-crypt--message (format-string &rest args)
+  "Call `message' with FORMAT-STRING and ARGS."
+  (let ((message-truncate-lines t))
+    (message "erc-crypt: %s" (apply 'format format-string args))))
+
+
 (cl-defmacro erc-crypt--with-message ((message) &rest body)
   "Deal with narrowed regions as implemented by
 `erc-send-modify-hook' and `erc-insert-modify-hook'.
 
 Search for and extract an encrypted message (if present),
 then bind MESSAGE to it, delete the encrypted string from buffer
-and executes BODY.  Finally, restore ERC text properties."
+and execute BODY. Finally, restore ERC text properties."
   (declare (indent defun))
   (let ((start (cl-gensym)))
     `(when erc-crypt-mode
@@ -269,7 +275,7 @@ If `erc-crypt-key' is NIL, ask for a key interactively.
 Return NIL on error."
   (unless erc-crypt-key
     (setq erc-crypt-key (sha1 (read-passwd "Key: ")))
-    (message "New key set"))
+    (erc-crypt--message "New key set"))
   (condition-case ex
       (let ((iv (erc-crypt--generate-iv))
             (key erc-crypt-key))
@@ -283,12 +289,13 @@ Return NIL on error."
                      "-iv" iv "-K" key "-nosalt")
                     (buffer-string)))
           (unless (= status 0)
-            (message "Non-zero return code from openssl (encrypt)")
-            (message "Output was: %s" result)
+            (erc-crypt--message "Output: %s" result)
+            (erc-crypt--message "Non-zero return code %s from openssl (encrypt)" status)
             (cl-return-from erc-crypt-encrypt nil))
           (base64-encode-string (concat iv result) t)))
     ('error
-     (message "Process error during encryption: %s" ex)
+     (erc-crypt--message "%s (process error/erc-crypt-encrypt)"
+                         (error-message-string ex))
      nil)))
 
 (cl-defun erc-crypt-decrypt (string)
@@ -296,10 +303,10 @@ Return NIL on error."
 STRING should be BASE64 encoded and contain in order, the IV as a 16 byte hex string
 and the CIPHERTEXT, which should be BASE64 encoded as well.
 
-If `erc-crypt-key' is NIL, return NIL.  See `erc-crypt-set-key'.
+If `erc-crypt-key' is NIL, return NIL. See `erc-crypt-set-key'.
 Return NIL on all errors."
   (unless erc-crypt-key
-    (message "No key set, could not decrypt")
+    (erc-crypt--message "No key set, could not decrypt")
     (cl-return-from erc-crypt-decrypt nil))
   (condition-case ex
       (let* ((str (base64-decode-string string))
@@ -316,18 +323,19 @@ Return NIL on all errors."
                      "-iv" iv "-K" key "-nosalt")
                     (buffer-string)))
           (unless (= status 0)
-            (message "Non-zero return code from openssl (decrypt)")
+            (erc-crypt--message "Non-zero return code %s from openssl (erc-crypt-decrypt)" status)
             (cl-return-from erc-crypt-decrypt nil))
           (base64-decode-string result)))
     ('error
-     (message "Process error during decryption: %s" ex)
+     (erc-crypt--message "%s (process error/erc-crypt-decrypt)"
+                         (error-message-string ex))
      nil)))
 
 
 
 (defun erc-crypt-maybe-send (string)
-  "Encrypt STRING and send to receiver.  Runs as a hook in `erc-send-pre-hook'.
-STRING should contain user input.  In order to get around IRC protocol
+  "Encrypt STRING and send to receiver. Runs as a hook in `erc-send-pre-hook'.
+STRING should contain user input. In order to get around IRC protocol
 message size limits, STRING is split into fragments and padded to a
 constant size, `erc-crypt-max-length', by calling `erc-crypt-split-message'.
 The resulting padded fragments are encrypted and sent separately,
@@ -342,7 +350,7 @@ On errors, do not send STRING to the server."
            (split (erc-crypt-split-message encoded))
            (encrypted (mapcar 'erc-crypt-encrypt split)))
       (cond ((cl-some 'null encrypted)
-             (message "Message will not be sent")
+             (erc-crypt--message "Message will not be sent")
              (setq erc-send-this nil))
             (t
              ;; str is dynamically bound
@@ -386,7 +394,8 @@ This happens inside `erc-insert-modify-hook'."
                           (insert (decode-coding-string msg 'utf-8 :nocopy))
                           (goto-char (point-min))
                           (insert (concat (propertize erc-crypt-indicator
-                                                      'face `(:foreground ,erc-crypt-success-color))
+                                                      'face
+                                                      `(:foreground ,erc-crypt-success-color))
                                           " "))
                           (setq erc-crypt--insert-queue nil)))
     (erc-crypt--with-message (msg)
@@ -458,8 +467,8 @@ The value used is the SHA1 hash of KEY."
   (interactive
    (list (read-passwd "Key: ")))
   (if erc-crypt-key
-      (message "Key changed")
-    (message "New key set"))
+      (erc-crypt--message "Key changed")
+    (erc-crypt--message "New key set"))
   (setq erc-crypt-key (sha1 key)))
 
 (provide 'erc-crypt)

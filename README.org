@@ -24,7 +24,7 @@ Encryption can be enabled/disabled on a per buffer basis.
 
 erc-crypt.el should be seen as a proof-of-concept and serve as HOWTO-code
 in terms of developing similar minor modes for ERC. It does NOT offer
-strong cryptography, DO NOT use this if that is what you need!
+strong cryptography, do NOT use this if that is what you need!
 
 * Usage 
 #+BEGIN_SRC emacs-lisp
