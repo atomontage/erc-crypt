@@ -112,7 +112,7 @@
   "String postfixed to all encrypted messages sent/received.")
 
 (defvar erc-crypt-max-length 150
-  "Maximum message length. If input message exceeds it, message will be
+  "Maximum message length. If input message exceeds it, message is
 broken up using `erc-crypt-split-message'. This is used to work around
 IRC protocol message limits.")
 
@@ -123,7 +123,7 @@ IRC protocol message limits.")
 
 (defvar erc-crypt-key nil
   "Key to use for encryption.
-If auto-set, it will be the SHA1 hash of the string interactively provided in
+If auto-set, it is the SHA1 hash of the string interactively provided in
 `erc-crypt-encrypt'.")
 
 (make-variable-buffer-local 'erc-crypt-key)
@@ -146,25 +146,25 @@ Managed by `erc-crypt-maybe-insert'.")
   (if erc-crypt-mode
       ;; Enabled
       (progn
-        (add-hook 'erc-send-pre-hook       'erc-crypt-maybe-send nil t)
-        (add-hook 'erc-send-modify-hook    'erc-crypt-maybe-send-fixup nil t)
-        (add-hook 'erc-send-completed-hook 'erc-crypt-post-send nil t)
-        (add-hook 'erc-insert-pre-hook     'erc-crypt-pre-insert nil t)
-        (add-hook 'erc-insert-modify-hook  'erc-crypt-maybe-insert nil t)
+        (add-hook 'erc-send-pre-hook       #'erc-crypt-maybe-send nil t)
+        (add-hook 'erc-send-modify-hook    #'erc-crypt-maybe-send-fixup nil t)
+        (add-hook 'erc-send-completed-hook #'erc-crypt-post-send nil t)
+        (add-hook 'erc-insert-pre-hook     #'erc-crypt-pre-insert nil t)
+        (add-hook 'erc-insert-modify-hook  #'erc-crypt-maybe-insert nil t)
 
         ;; Reset buffer locals
-        (setq erc-crypt--left-over nil
+        (setq erc-crypt--left-over    nil
               erc-crypt--insert-queue nil
               erc-crypt-fill-function erc-fill-function
-              erc-fill-function nil))
+              erc-fill-function       nil))
 
     ;; Disabled
     (progn
-      (remove-hook 'erc-send-pre-hook       'erc-crypt-maybe-send t)
-      (remove-hook 'erc-send-modify-hook    'erc-crypt-maybe-send-fixup t)
-      (remove-hook 'erc-send-completed-hook 'erc-crypt-post-send t)
-      (remove-hook 'erc-insert-pre-hook     'erc-crypt-pre-insert t)
-      (remove-hook 'erc-insert-modify-hook  'erc-crypt-maybe-insert t)
+      (remove-hook 'erc-send-pre-hook       #'erc-crypt-maybe-send t)
+      (remove-hook 'erc-send-modify-hook    #'erc-crypt-maybe-send-fixup t)
+      (remove-hook 'erc-send-completed-hook #'erc-crypt-post-send t)
+      (remove-hook 'erc-insert-pre-hook     #'erc-crypt-pre-insert t)
+      (remove-hook 'erc-insert-modify-hook  #'erc-crypt-maybe-insert t)
       (setq erc-fill-function erc-crypt-fill-function
             erc-crypt-fill-function nil))))
 
@@ -177,7 +177,7 @@ Managed by `erc-crypt-maybe-insert'.")
 (defun erc-crypt--message (format-string &rest args)
   "Call `message' with FORMAT-STRING and ARGS."
   (let ((message-truncate-lines t))
-    (message "erc-crypt: %s" (apply 'format format-string args))))
+    (message "erc-crypt: %s" (apply #'format format-string args))))
 
 
 (cl-defmacro erc-crypt--with-message ((message) &rest body)
@@ -224,19 +224,20 @@ Return IV as a 128bit hex string."
 (defun erc-crypt--pad (list)
   "Pad message or fragments in LIST to `erc-crypt-max-length' bytes.
 Return a list of padded message or list of fragments.
-The resulting messages are of the form MMMMMMMMXXXPS.
+
+Resulting messages are of the form MMMMMMMMXXXPS.
 
 MMM are original message bytes.
 XXX are bytes used for padding.
 P is a single byte that is equal to the number of X (padding bytes)
-S is a single byte that is equal to 1 when the message is a fragment, 0
-if not or if final fragment."
+S is a single byte that is equal to 1 when the message is a fragment,
+0 if not or if final fragment."
   (cl-labels ((do-pad (string split-tag)
                       (let* ((len (length string))
                              (diff (- erc-crypt-max-length len))
                              (pad (cl-loop repeat diff
                                            collect (string (random 255)) into ret
-                                           finally return (cl-reduce 'concat ret))))
+                                           finally return (cl-reduce #'concat ret))))
                         (concat string pad (string diff) (string split-tag)))))
     (cond ((listp (cl-rest list))
            ;; Message is split in parts
@@ -253,6 +254,7 @@ if not or if final fragment."
 (defun erc-crypt--split (string)
   "Split STRING into substrings that are at most `erc-crypt-max-length' bytes long.
 Splitting does not take into account word boundaries or whitespace.
+
 Return list of substrings."
   (cl-loop with len = (length string)
            for start = 0 then (+ start erc-crypt-max-length)
@@ -268,11 +270,11 @@ Return list of substrings."
 (cl-defun erc-crypt-encrypt (string)
   "Encrypt STRING with `erc-crypt-key'.
 An IV generated dynamically by `erc-crypt--generate-iv' is used for encryption.
-Return BASE64 encoded concatenation of IV and CIPHERTEXT which should be
-BASE64 encoded as well.
 
 If `erc-crypt-key' is NIL, ask for a key interactively.
-Return NIL on error."
+
+Return BASE64 encoded concatenation of IV and CIPHERTEXT which should be
+BASE64 encoded as well. Return NIL on all errors."
   (unless erc-crypt-key
     (setq erc-crypt-key (sha1 (read-passwd "Key: ")))
     (erc-crypt--message "New key set"))
@@ -300,8 +302,8 @@ Return NIL on error."
 
 (cl-defun erc-crypt-decrypt (string)
   "Decrypt STRING with `erc-crypt-key'.
-STRING should be BASE64 encoded and contain in order, the IV as a 16 byte hex string
-and the CIPHERTEXT, which should be BASE64 encoded as well.
+STRING must be BASE64 encoded and contain in order, the IV as a 16 byte hex string
+and the CIPHERTEXT, which must be BASE64 encoded as well.
 
 If `erc-crypt-key' is NIL, return NIL. See `erc-crypt-set-key'.
 Return NIL on all errors."
@@ -348,8 +350,8 @@ On errors, do not send STRING to the server."
              (not (string= "/" (substring string 0 1))))
     (let* ((encoded (encode-coding-string string 'utf-8 t))
            (split (erc-crypt-split-message encoded))
-           (encrypted (mapcar 'erc-crypt-encrypt split)))
-      (cond ((cl-some 'null encrypted)
+           (encrypted (mapcar #'erc-crypt-encrypt split)))
+      (cond ((cl-some #'null encrypted)
              (erc-crypt--message "Message will not be sent")
              (setq erc-send-this nil))
             (t
@@ -407,7 +409,9 @@ This happens inside `erc-insert-modify-hook'."
                ;; Insert queued fragments
                (insert (concat "(decrypt error) "
                                (decode-coding-string
-                                (mapconcat 'identity (mapcar 'car (nreverse (cl-rest erc-crypt--insert-queue))) "")
+                                (mapconcat #'identity (mapcar #'car
+                                                              (nreverse (cl-rest erc-crypt--insert-queue)))
+                                           "")
                                 'utf-8 :nocopy)))
                (goto-char (point-min))
                (insert (concat (propertize erc-crypt-indicator
@@ -422,7 +426,9 @@ This happens inside `erc-insert-modify-hook'."
                t)
               ((= tag 0)
                ;; Final fragment
-               (insert-msg (mapconcat 'identity (mapcar 'car (nreverse erc-crypt--insert-queue)) ""))))))))
+               (insert-msg (mapconcat #'identity (mapcar #'car
+                                                         (nreverse erc-crypt--insert-queue))
+                                      ""))))))))
 
 (defun erc-crypt-post-send (string)
   "Send message fragments placed in `erc-crypt--left-over' to remote end."
