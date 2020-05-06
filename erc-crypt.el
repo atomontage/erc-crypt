@@ -213,7 +213,7 @@ and execute BODY. Finally, restore ERC text properties."
   "Generate a suitable IV to be used for message encryption.
 Return IV as a 128bit hex string."
   (substring (sha1 (mapconcat
-                    (lambda (x) (format "%d" x))
+                    #'int-to-string
                     (list (erc-crypt--time-millis)
                           (random t)
                           (random t))
