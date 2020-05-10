@@ -456,6 +456,7 @@ This happens inside `erc-insert-modify-hook'."
 ;;; Interactive
 ;;;
 
+
 ;;;###autoload
 (defun erc-crypt-enable ()
   "Enable `erc-crypt-mode' for the current buffer."
