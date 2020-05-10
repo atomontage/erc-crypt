@@ -458,13 +458,13 @@ This happens inside `erc-insert-modify-hook'."
 
 
 (defun erc-crypt-enable ()
-  "Enable erc-crypt-mode for the current buffer."
+  "Enable `erc-crypt-mode' for the current buffer."
   (interactive)
   (cl-assert (eq major-mode 'erc-mode) t)
   (erc-crypt-mode t))
 
 (defun erc-crypt-disable ()
-  "Disable erc-crypt-mode for the current buffer."
+  "Disable `erc-crypt-mode' for the current buffer."
   (interactive)
   (cl-assert (eq major-mode 'erc-mode) t)
   (erc-crypt-mode -1))
