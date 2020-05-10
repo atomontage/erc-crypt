@@ -26,7 +26,7 @@ erc-crypt.el should be seen as a proof-of-concept and serve as HOWTO-code
 in terms of developing similar minor modes for ERC. It does NOT offer
 strong cryptography, do NOT use this if that is what you need!
 
-* Usage 
+* Usage
 #+BEGIN_SRC emacs-lisp
 ;; Move erc-crypt.el to a directory in your load-path
 
