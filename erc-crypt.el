@@ -456,19 +456,21 @@ This happens inside `erc-insert-modify-hook'."
 ;;; Interactive
 ;;;
 
-
+;;;###autoload
 (defun erc-crypt-enable ()
   "Enable `erc-crypt-mode' for the current buffer."
   (interactive)
   (cl-assert (eq major-mode 'erc-mode) t)
   (erc-crypt-mode t))
 
+;;;###autoload
 (defun erc-crypt-disable ()
   "Disable `erc-crypt-mode' for the current buffer."
   (interactive)
   (cl-assert (eq major-mode 'erc-mode) t)
   (erc-crypt-mode -1))
 
+;;;###autoload
 (defun erc-crypt-set-key (key)
   "Set `erc-crypt-key' for the current buffer.
 The value used is the SHA1 hash of KEY."
