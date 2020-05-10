@@ -369,7 +369,7 @@ This happens inside `erc-send-modify-hook'."
     (insert erc-crypt-message)
     (goto-char (point-min))
     (insert (concat (propertize erc-crypt-indicator 'face
-                                `(:foreground ,erc-crypt-success-color))
+                                (list :foreground erc-crypt-success-color))
                     " "))))
 
 (defun erc-crypt-pre-insert (string)
@@ -397,7 +397,8 @@ This happens inside `erc-insert-modify-hook'."
                           (goto-char (point-min))
                           (insert (concat (propertize erc-crypt-indicator
                                                       'face
-                                                      `(:foreground ,erc-crypt-success-color))
+                                                      (list :foreground
+                                                            erc-crypt-success-color))
                                           " "))
                           (setq erc-crypt--insert-queue nil)))
     (erc-crypt--with-message (msg)
@@ -409,13 +410,14 @@ This happens inside `erc-insert-modify-hook'."
                ;; Insert queued fragments
                (insert (concat "(decrypt error) "
                                (decode-coding-string
-                                (mapconcat #'identity (mapcar #'car
-                                                              (nreverse (cl-rest erc-crypt--insert-queue)))
+                                (mapconcat #'identity
+                                           (mapcar #'car
+                                                   (nreverse (cl-rest erc-crypt--insert-queue)))
                                            "")
                                 'utf-8 :nocopy)))
                (goto-char (point-min))
                (insert (concat (propertize erc-crypt-indicator
-                                           'face `(:foreground ,erc-crypt-failure-color))
+                                           'face (list :foreground erc-crypt-failure-color))
                                " "))
                (setq erc-crypt--insert-queue nil))
               ((and (= len 1) (= tag 0))
