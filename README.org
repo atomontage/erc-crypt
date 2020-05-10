@@ -14,7 +14,7 @@ Encryption can be enabled/disabled on a per buffer basis.
   Original formatting is preserved, no information is lost.
 - Messages are padded to constant size
 
-* TODO
+* Todo
 + Move to GnuPG for symmetric encryption (and customizable key
   derivation from passphrase)
 + Use OpenSSL for DH key generation
