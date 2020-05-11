@@ -3,7 +3,7 @@
 ;; Copyright (C) 2011-2020 xristos@sdf.org
 ;; All rights reserved
 
-;; Version: 1.9 - 2020-04-10
+;; Version: 2.1 - 2020-05-10
 ;; Author: xristos <xristos@sdf.org>
 ;; URL: https://github.com/atomontage/erc-crypt
 ;; Package-Requires: ((cl-lib "0.5"))
