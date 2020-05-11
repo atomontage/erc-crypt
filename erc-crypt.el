@@ -80,14 +80,13 @@
 ;;; Code:
 
 (require 'erc)
-(require 'erc-fill)
 (require 'sha1)
 (require 'cl-lib)
+(require 'erc-fill)
 
 ;; erc-fill doesn't play nice with erc-crypt.el
-(defvar erc-crypt-fill-function nil)
+(defvar-local erc-crypt-fill-function nil)
 
-(make-variable-buffer-local 'erc-crypt-fill-function)
 (make-variable-buffer-local 'erc-fill-function)
 
 (defvar erc-crypt-openssl-path "openssl"
@@ -112,33 +111,26 @@
   "String postfixed to all encrypted messages sent/received.")
 
 (defvar erc-crypt-max-length 150
-  "Maximum message length. If input message exceeds it, message is
-broken up using `erc-crypt-split-message'. This is used to work around
-IRC protocol message limits.")
+  "Maximum message length.
+If input message exceeds it, message is broken up using
+`erc-crypt-split-message'. This is used to work around IRC protocol
+message limits.")
 
-(defvar erc-crypt-message nil
+(defvar-local erc-crypt-message nil
   "Last message sent (before encryption).")
 
-(make-variable-buffer-local 'erc-crypt-message)
+(defvar-local erc-crypt-key nil
+  "Key used for encryption.
+If set interactively through `erc-crypt-encrypt', it is the SHA1 hash
+of the string provided.")
 
-(defvar erc-crypt-key nil
-  "Key to use for encryption.
-If auto-set, it is the SHA1 hash of the string interactively provided in
-`erc-crypt-encrypt'.")
-
-(make-variable-buffer-local 'erc-crypt-key)
-
-(defvar erc-crypt--left-over nil
+(defvar-local erc-crypt--left-over nil
   "List that contains message fragments.
 Processed by `erc-crypt-post-send' inside `erc-send-completed-hook'.")
 
-(make-variable-buffer-local 'erc-crypt--left-over)
-
-(defvar erc-crypt--insert-queue nil
+(defvar-local erc-crypt--insert-queue nil
   "List that contains message fragments, before insertion.
 Managed by `erc-crypt-maybe-insert'.")
-
-(make-variable-buffer-local 'erc-crypt--insert-queue)
 
 (define-minor-mode erc-crypt-mode
   "Toggle symmetric encryption."
@@ -181,12 +173,13 @@ Managed by `erc-crypt-maybe-insert'.")
 
 
 (cl-defmacro erc-crypt--with-message ((message) &rest body)
-  "Deal with narrowed regions as implemented by
-`erc-send-modify-hook' and `erc-insert-modify-hook'.
+  "Conveniently work with narrowed region as implemented by ERC hooks.
 
 Search for and extract an encrypted message (if present),
 then bind MESSAGE to it, delete the encrypted string from buffer
-and execute BODY. Finally, restore ERC text properties."
+and execute BODY. Finally, restore ERC text properties.
+
+See `erc-send-modify-hook' and `erc-insert-modify-hook'."
   (declare (indent defun))
   (let ((start (cl-gensym)))
     `(when erc-crypt-mode
@@ -226,40 +219,31 @@ Return IV as a 128bit hex string."
 Return a list of padded message or list of fragments.
 
 Resulting messages are of the form MMMMMMMMXXXPS.
-
+                                   <-max len->
 MMM are original message bytes.
 XXX are bytes used for padding.
 P is a single byte that is equal to the number of X (padding bytes)
 S is a single byte that is equal to 1 when the message is a fragment,
 0 if not or if final fragment."
   (cl-labels ((do-pad (string split-tag)
-                      (let* ((len (length string))
+                      (let* ((len  (length string))
                              (diff (- erc-crypt-max-length len))
-                             (pad (cl-loop repeat diff
-                                           collect (string (random 255)) into ret
-                                           finally return (cl-reduce #'concat ret))))
+                             (pad  (cl-loop repeat diff concat (string (random 256)))))
                         (concat string pad (string diff) (string split-tag)))))
-    (cond ((listp (cl-rest list))
-           ;; Message is split in parts
-           (cl-loop for msg in list
-                    for count from 0
-                    with len = (length list)
-                    if (= count (1- len))
-                    collect (do-pad msg 0)
-                    else
-                    collect (do-pad msg 1)))
-          (t (list (do-pad list 0))))))
-
+    (cl-loop for (msg . rest) on list
+             if rest collect (do-pad msg 1)
+             else collect    (do-pad msg 0))))
 
 (defun erc-crypt--split (string)
-  "Split STRING into substrings that are at most `erc-crypt-max-length' bytes long.
+  "Split STRING into substrings that are at most `erc-crypt-max-length' long.
 Splitting does not take into account word boundaries or whitespace.
 
 Return list of substrings."
-  (cl-loop with len = (length string)
-           for start = 0 then (+ start erc-crypt-max-length)
+  (cl-loop with len   = (length string)
+           with start = 0
+           with max   = erc-crypt-max-length
            while (< start len)
-           collect (substring string start (min len (+ start erc-crypt-max-length)))))
+           collect (substring string start (min len (cl-incf start max)))))
 
 
 ;;;
@@ -271,15 +255,15 @@ Return list of substrings."
   "Encrypt STRING with `erc-crypt-key'.
 An IV generated dynamically by `erc-crypt--generate-iv' is used for encryption.
 
-If `erc-crypt-key' is NIL, ask for a key interactively.
+If `erc-crypt-key' is nil, ask for a key interactively.
 
 Return BASE64 encoded concatenation of IV and CIPHERTEXT which should be
-BASE64 encoded as well. Return NIL on all errors."
+BASE64 encoded as well. Return nil on all errors."
   (unless erc-crypt-key
     (setq erc-crypt-key (sha1 (read-passwd "Key: ")))
     (erc-crypt--message "New key set"))
   (condition-case ex
-      (let ((iv (erc-crypt--generate-iv))
+      (let ((iv  (erc-crypt--generate-iv))
             (key erc-crypt-key))
         (cl-multiple-value-bind (status result)
             (with-temp-buffer
@@ -305,14 +289,15 @@ BASE64 encoded as well. Return NIL on all errors."
 STRING must be BASE64 encoded and contain in order, the IV as a 16 byte hex string
 and the CIPHERTEXT, which must be BASE64 encoded as well.
 
-If `erc-crypt-key' is NIL, return NIL. See `erc-crypt-set-key'.
-Return NIL on all errors."
+If `erc-crypt-key' is nil, return nil. Return nil on all errors.
+
+Also see `erc-crypt-set-key'."
   (unless erc-crypt-key
     (erc-crypt--message "No key set, could not decrypt")
     (cl-return-from erc-crypt-decrypt nil))
   (condition-case ex
       (let* ((str (base64-decode-string string))
-             (iv (substring str 0 32))
+             (iv  (substring str 0 32))
              (key erc-crypt-key)
              (ciphertext (substring str 32)))
         (cl-multiple-value-bind (status result)
@@ -334,7 +319,6 @@ Return NIL on all errors."
      nil)))
 
 
-
 (defun erc-crypt-maybe-send (string)
   "Encrypt STRING and send to receiver. Runs as a hook in `erc-send-pre-hook'.
 STRING should contain user input. In order to get around IRC protocol
@@ -348,8 +332,8 @@ On errors, do not send STRING to the server."
   (when (and erc-crypt-mode
              ;; Skip ERC commands
              (not (string= "/" (substring string 0 1))))
-    (let* ((encoded (encode-coding-string string 'utf-8 t))
-           (split (erc-crypt-split-message encoded))
+    (let* ((encoded   (encode-coding-string string 'utf-8 t))
+           (split     (erc-crypt-split-message encoded))
            (encrypted (mapcar #'erc-crypt-encrypt split)))
       (cond ((cl-some #'null encrypted)
              (erc-crypt--message "Message will not be sent")
@@ -374,63 +358,54 @@ This happens inside `erc-send-modify-hook'."
 
 (defun erc-crypt-pre-insert (string)
   "Decrypt STRING and insert it into `erc-crypt--insert-queue'.
-If decrypted message is a fragment, `erc-insert-this' is set to NIL.
-This will avoid displaying message and will not trigger `erc-insert-modify-hook'."
+If decrypted message is a fragment, `erc-insert-this' is set to nil.
+Does not display message and does not trigger `erc-insert-modify-hook'."
   (when (string-match (concat erc-crypt-prefix "\\(.+\\)" erc-crypt-postfix) string)
-    (let* ((msg (match-string 1 string))
+    (let* ((msg       (match-string 1 string))
            (decrypted (erc-crypt-decrypt msg)))
       (if decrypted
-          (let* ((len (length decrypted))
-                 (split (aref decrypted (1- len)))
-                 (pad (aref decrypted (- len 2)))
+          (let* ((len       (length decrypted))
+                 (split     (aref decrypted (1- len)))
+                 (pad       (aref decrypted (- len 2)))
                  (decrypted (substring decrypted 0 (- len 2 pad))))
             (push (cons decrypted split) erc-crypt--insert-queue)
             (if (= split 1) (setq erc-insert-this nil)))
-        ;; Error
-        (push (cons :error :error) erc-crypt--insert-queue)))))
+        ;; Error, erc-insert-this will be set to t so it's not possible for
+        ;; multiple error-indicating conses to be inserted in the queue.
+        (push (cons :error nil) erc-crypt--insert-queue)))))
+
+(defun erc-crypt--insert (msg &optional error)
+  (insert (concat (if error "(decrypt error) " "")
+                  (decode-coding-string msg 'utf-8 :nocopy)))
+  (goto-char (point-min))
+  (insert (concat
+           (propertize erc-crypt-indicator 'face
+                       (list :foreground
+                             (if error erc-crypt-failure-color erc-crypt-success-color)))
+           " "))
+  (setq erc-crypt--insert-queue nil))
 
 (defun erc-crypt-maybe-insert ()
   "Display decrypted messages and do fragment reconstruction.
 This happens inside `erc-insert-modify-hook'."
-  (cl-labels ((insert-msg (msg)
-                          (insert (decode-coding-string msg 'utf-8 :nocopy))
-                          (goto-char (point-min))
-                          (insert (concat (propertize erc-crypt-indicator
-                                                      'face
-                                                      (list :foreground
-                                                            erc-crypt-success-color))
-                                          " "))
-                          (setq erc-crypt--insert-queue nil)))
-    (erc-crypt--with-message (msg)
-      (let* ((len (length erc-crypt--insert-queue))
-             (cons (cl-first erc-crypt--insert-queue))
-             (msg (car cons))
-             (tag (cdr cons)))
-        (cond ((eql msg :error)
-               ;; Insert queued fragments
-               (insert (concat "(decrypt error) "
-                               (decode-coding-string
-                                (mapconcat #'identity
-                                           (mapcar #'car
-                                                   (nreverse (cl-rest erc-crypt--insert-queue)))
-                                           "")
-                                'utf-8 :nocopy)))
-               (goto-char (point-min))
-               (insert (concat (propertize erc-crypt-indicator
-                                           'face (list :foreground erc-crypt-failure-color))
-                               " "))
-               (setq erc-crypt--insert-queue nil))
-              ((and (= len 1) (= tag 0))
-               ;; Normal message
-               (insert-msg msg))
-              ((and (= len 1) (= tag 1))
-               ;; Do nothing
-               t)
-              ((= tag 0)
-               ;; Final fragment
-               (insert-msg (mapconcat #'identity (mapcar #'car
-                                                         (nreverse erc-crypt--insert-queue))
-                                      ""))))))))
+  (erc-crypt--with-message (msg)
+    (cl-loop with first = (cl-first erc-crypt--insert-queue)
+             with rest  = (cl-rest erc-crypt--insert-queue)
+             with msg   = (car first)
+             with tag   = (cdr first)
+             ;; Incomplete message fragment
+             when (equal tag 1) do (cl-return)
+             ;; Complete message in one fragment
+             when (and (equal tag 0) (null rest))
+             do (erc-crypt--insert msg) (cl-return)
+             ;; Either an error or final fragment
+             for fragment in rest collect (car fragment) into out
+             finally
+             (let ((out (mapconcat #'identity (nreverse out) "")))
+               (if (eql msg :error)
+                   (erc-crypt--insert out t)
+                 (erc-crypt--insert (concat out msg)))))))
+
 
 (defun erc-crypt-post-send (string)
   "Send message fragments placed in `erc-crypt--left-over' to remote end."
@@ -459,14 +434,14 @@ This happens inside `erc-insert-modify-hook'."
 
 ;;;###autoload
 (defun erc-crypt-enable ()
-  "Enable `erc-crypt-mode' for the current buffer."
+  "Enable PSK encryption for the current buffer."
   (interactive)
   (cl-assert (eq major-mode 'erc-mode) t)
   (erc-crypt-mode t))
 
 ;;;###autoload
 (defun erc-crypt-disable ()
-  "Disable `erc-crypt-mode' for the current buffer."
+  "Disable PSK encryption for the current buffer."
   (interactive)
   (cl-assert (eq major-mode 'erc-mode) t)
   (erc-crypt-mode -1))
