@@ -1,5 +1,5 @@
 [[https://opensource.org/licenses/BSD-2-Clause][https://img.shields.io/badge/license-BSD-blue.svg]]
-[[http://melpa.org/#/erc-crypt][https://melpa.org/packages/erc-crypt-badge.svg]]
+[[https://melpa.org/#/erc-crypt][https://melpa.org/packages/erc-crypt-badge.svg]]
 [[http://stable.melpa.org/#/erc-crypt][https://stable.melpa.org/packages/erc-crypt-badge.svg]]
 
 erc-crypt.el is a minor mode for ERC that provides PSK encryption.
@@ -28,10 +28,14 @@ strong cryptography, do NOT use this if that is what you need!
 
 * Usage
 #+BEGIN_SRC emacs-lisp
-;; Move erc-crypt.el to a directory in your load-path
-
+;; Install through MELPA or ensure directory of erc-crypt.el is in your
+;; load-path and add the following to your init file:
 (require 'erc-crypt)
+#+END_SRC
 
+Interactively
+
+#+BEGIN_SRC emacs-lisp
 M-x erc-crypt-enable  ; Enable encryption for the current ERC buffer
 M-x erc-crypt-disable ; Disable encryption for the current ERC buffer
 M-x erc-crypt-set-key ; Set/change key for current ERC buffer
