@@ -26,13 +26,19 @@ erc-crypt.el should be seen as a proof-of-concept and serve as HOWTO-code
 in terms of developing similar minor modes for ERC. It does NOT offer
 strong cryptography, do NOT use this if that is what you need!
 
-* Usage
+* Install
+Simple and most flexible method:
+
 #+BEGIN_SRC emacs-lisp
-;; Install through MELPA or ensure directory of erc-crypt.el is in your
+;; Clone this repository, ensure directory of erc-crypt.el is in your
 ;; load-path and add the following to your init file:
 (require 'erc-crypt)
 #+END_SRC
 
+Alternatively, you can install through [[https://melpa.org/][MELPA]] or some other Emacs package
+manager.
+
+* Usage
 Interactively
 
 #+BEGIN_SRC emacs-lisp
