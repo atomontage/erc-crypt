@@ -212,7 +212,7 @@ Return IV as a 128bit hex string."
                           (random t)
                           (random t))
                     ""))
-             0 32))
+             0 12))
 
 
 (defun erc-crypt--pad (list)
@@ -298,9 +298,9 @@ Also see `erc-crypt-set-key'."
     (cl-return-from erc-crypt-decrypt nil))
   (condition-case ex
       (let* ((str (base64-decode-string string))
-             (iv  (substring str 0 32))
+             (iv  (substring str 0 12))
              (key erc-crypt-key)
-             (ciphertext (substring str 32)))
+             (ciphertext (substring str 12)))
         (cl-multiple-value-bind (status result)
             (with-temp-buffer
               (insert ciphertext)
