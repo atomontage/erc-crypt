@@ -212,7 +212,7 @@ Return IV as a 128bit hex string."
                           (random t)
                           (random t))
                     ""))
-             0 32))
+             0 12))
 
 
 (defun erc-crypt--pad (list)
@@ -270,7 +270,7 @@ BASE64 encoded as well. Return nil on all errors."
             (key erc-crypt-key))
         (cl-multiple-value-bind (status result)
             (with-temp-buffer
-              (insert (base64-encode-string string))
+              (insert (base64-encode-string (encode-coding-string string 'utf-8)))
               (list (call-process-region
                      (point-min) (point-max)
                      erc-crypt-openssl-path t '(t nil) nil
@@ -281,7 +281,7 @@ BASE64 encoded as well. Return nil on all errors."
             (erc-crypt--message "Output: %s" result)
             (erc-crypt--message "Non-zero return code %s from openssl (encrypt)" status)
             (cl-return-from erc-crypt-encrypt nil))
-          (base64-encode-string (concat iv result) t)))
+          (base64-encode-string (encode-coding-string (concat iv result) 'utf-8) t)))
     ('error
      (erc-crypt--message "%s (process error/erc-crypt-encrypt)"
                          (error-message-string ex))
@@ -300,9 +300,9 @@ Also see `erc-crypt-set-key'."
     (cl-return-from erc-crypt-decrypt nil))
   (condition-case ex
       (let* ((str (base64-decode-string string))
-             (iv  (substring str 0 32))
+             (iv  (substring str 0 12))
              (key erc-crypt-key)
-             (ciphertext (substring str 32)))
+             (ciphertext (substring str 12)))
         (cl-multiple-value-bind (status result)
             (with-temp-buffer
               (insert ciphertext)
