@@ -229,8 +229,10 @@ S is a single byte that is equal to 1 when the message is a fragment,
   (cl-labels ((do-pad (string split-tag)
                       (let* ((len  (length string))
                              (diff (- erc-crypt-max-length len))
-                             (pad  (cl-loop repeat diff concat (string (random 256)))))
-                        (concat string pad (string diff) (string split-tag)))))
+                             (pad  (apply 'unibyte-string
+                                          (cl-loop repeat diff collect (random 256)))))
+                        (concat string pad (unibyte-string diff)
+                                (unibyte-string split-tag)))))
     (cl-loop for (msg . rest) on list
              if rest collect (do-pad msg 1)
              else collect    (do-pad msg 0))))
@@ -333,7 +335,7 @@ On errors, do not send STRING to the server."
   (when (and erc-crypt-mode
              ;; Skip ERC commands
              (not (string= "/" (substring string 0 1))))
-    (let* ((encoded   (encode-coding-string string 'utf-8 t))
+    (let* ((encoded   (encode-coding-string string 'utf-8))
            (split     (erc-crypt-split-message encoded))
            (encrypted (mapcar #'erc-crypt-encrypt split)))
       (cond ((cl-some #'null encrypted)
@@ -377,7 +379,7 @@ Does not display message and does not trigger `erc-insert-modify-hook'."
 
 (defun erc-crypt--insert (msg &optional error)
   (insert (concat (if error "(decrypt error) " "")
-                  (decode-coding-string msg 'utf-8 :nocopy)))
+                  (decode-coding-string msg 'utf-8)))
   (goto-char (point-min))
   (insert (concat
            (propertize erc-crypt-indicator 'face
